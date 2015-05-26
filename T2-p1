@@ -1,0 +1,107 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <stdbool.h>
+#include <pthread.h>
+
+//Pra usar a função rand(), temos que adicionar a biblioteca time.h 
+//e para saber o valor de RAND_MAX, temos que usar a função stdlib.h.
+
+// constantes para serem usadas na execução do programa
+#define tamvet 20  // quantidade de elementos a ser gerado
+#define nbuckets 10  // quantidade de buckets para separar o vetor original
+#define nthreads 4  // quantidade de Threads para executar o programa
+
+//cria uma estrutura contendo 2 elementos do tipo inteiro e um vetor de int
+//a estrutura representará um novo tipo de dados, chamado "bucket"
+//logo, será possível criar variáveis do tipo "bucket"
+typedef struct {
+    int id;
+    int tam;
+    int elementosVetor[tamvet];
+} bucket;
+
+// Variaveis globias usadas na execução do programa
+int MINIMO = -1; // contem o menor valor da faixa do bucket
+int alternaBucket = 0; // usado pela função "thread_bucket", para alternar entre os buckets
+int compBucket = 0; // usado pela função "thread_bucket", para verificar o numero de buckets
+double faixaNumeroBuckets = (tamvet / nbuckets); //usado para determinar a faixa de número que cada bucket receberá
+bucket *vetorBucket;
+pthread_mutex_t mutex;
+
+
+//método que ordena um dado vetor desordenado
+void bubble_sort(int *v, int tam) {
+    int i, j, temp, trocou;
+    for (j = 0; j < tam - 1; j++) {
+        trocou = 0;
+        for (i = 0; i < tam - 1; i++) {
+            if (v[i + 1] < v[i]) {
+                temp = v[i];
+                v[i] = v[i + 1];
+                v[i + 1] = temp;
+                trocou = 1;
+            }
+        }
+        if (!trocou) break;
+    }
+}
+
+
+int main() {
+    // imprime erro caso alguma das seguintes condições seja violada
+    if (nthreads < 1 && nbuckets > tamvet) {
+        printf("ERRO! Verifique o numero de threads informado, bem como o tamanho do vetor e o número de buckets.");
+    } else if (nthreads < 1) {
+        printf("ERRO! Verifique o número de threads informado.");
+    } else if (nbuckets > tamvet) {
+        printf("ERRO! Verifique o número de buckets informado e o tamanho do vetor.");
+    }
+        
+    int vetorOriginal[tamvet]; // define um vetor com o tamanho estipulado pelo usuario
+    int *pVetorOriginal = vetorOriginal; // guarda a primeira posição de memoria do vetor em um ponteiro
+       
+    int i; // contador usado nos for
+    // Usando a função srand(), vamos alimentar a função rand() com uma semente, com um número, que é o tempo atual.
+    // Assim, os números gerados vão (podem) ser diferentes.
+    srand((unsigned) time(NULL));
+
+    // cria vetor de numeros aleatorio
+    for (i = 0; i < tamvet; i++) {
+    	// fazendo módulo com tamvet, garante-se que só será gerado números entre 0 e tamvet-1.
+    	pVetorOriginal[i] = (rand() % (tamvet));
+    	printf("%d ", pVetorOriginal[i]);
+    }
+	//\n para que o print das threads não fiquem na mesma linha do vetor printado.
+    printf("\n");
+    cria_bucktes(pVetorOriginal); // separa o vetor original em buckets
+
+//    pthread_mutex_init(&mutex, NULL); // inicializa mutex para tratar condição de corrida
+//    pthread_t thread;
+
+/*    short unsigned int j = 0;
+    // criando as threads
+    // e já manda cada uma organizar os buckets
+    for (j = 0; j < nthreads; ++j) {
+        pthread_create(&thread, NULL, thread_bucket, NULL);
+    }
+    // fazendo as threads esperarem até que todas "voltem" da execução
+    for (j = 0; j < nthreads; ++j) {
+        pthread_join(thread, NULL);
+*/  }
+	//\n para que o print do vetor ordenado não fique na mesma linha do print das threads
+    printf("\n");
+    i = 0;
+    // imprime o vetor ordenado
+    while (i < tamvet) {
+    	for (j = 0; j < nbuckets; j++) {
+            for (int k = 0; k < vetorBucket[j].tam; k++) {
+            	vetorOriginal[i] = vetorBucket[j].elementosVetor[k];
+                printf("%d ", vetorOriginal[i]);
+                i++;
+            }
+        }
+    }
+    // destroi o mutex
+    pthread_mutex_destroy(&mutex);
+}
